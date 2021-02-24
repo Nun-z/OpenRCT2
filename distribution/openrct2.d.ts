@@ -314,6 +314,11 @@ declare global {
          * Rotation of the camera from 0 to 3.
          */
         rotation: number;
+
+        /**
+         * Whether to enable transparency in the screenshot.
+         */
+        transparent?: boolean;
     }
 
     type ObjectType =
@@ -1792,6 +1797,8 @@ declare global {
         activateTool(tool: ToolDesc): void;
 
         registerMenuItem(text: string, callback: () => void): void;
+
+        registerShortcut(desc: ShortcutDesc): void;
     }
 
     /**
@@ -1904,6 +1911,12 @@ declare global {
         id: string;
         cursor?: CursorType;
 
+        /**
+         * What types of object in the game can be selected with the tool.
+         * E.g. only specify terrain if you only want a tile selection.
+         */
+        filter?: ToolFilter[];
+
         onStart?: () => void;
         onDown?: (e: ToolEventArgs) => void;
         onMove?: (e: ToolEventArgs) => void;
@@ -1939,6 +1952,45 @@ declare global {
         "walk_down" |
         "water_down" |
         "zzz";
+
+    type ToolFilter =
+        "terrain" |
+        "entity" |
+        "ride" |
+        "water" |
+        "scenery" |
+        "footpath" |
+        "footpath_item" |
+        "park_entrance" |
+        "wall" |
+        "large_scenery" |
+        "label" |
+        "banner";
+
+    interface ShortcutDesc {
+        /**
+         * The unique identifier for the shortcut.
+         * If the identifier already exists, the shortcut will not be registered.
+         * Use full stops to group shortcuts together, e.g. `yourplugin.somewindow.apply`.
+         */
+        id: string;
+
+        /**
+         * The display text for the shortcut.
+         */
+        text: string;
+
+        /**
+         * Default bindings for the shortcut.
+         * E.g. `["CTRL+SHIFT+L", "MOUSE 3"]`
+         */
+        bindings?: string[];
+
+        /**
+         * Function to call when the shortcut is invoked.
+         */
+        callback: () => void;
+    }
 
     /**
      * Represents the type of a widget, e.g. button or label.

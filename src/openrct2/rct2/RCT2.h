@@ -88,17 +88,6 @@ constexpr const int32_t rct2_object_entry_group_counts[] = {
 };
 // clang-format on
 
-struct rct2_install_info
-{
-    uint32_t installLevel;
-    char title[260];
-    char path[260];
-    uint32_t var_20C;
-    uint8_t pad_210[256];
-    char expansionPackNames[16][128];
-    uint32_t activeExpansionPacks; // 0xB10
-};
-
 #pragma pack(push, 1)
 
 /**
@@ -802,6 +791,8 @@ ObjectEntryIndex RCT2RideTypeToOpenRCT2RideType(uint8_t rct2RideType, const rct_
 bool RCT2TrackTypeIsBooster(uint8_t rideType, uint16_t trackType);
 bool RCT2RideTypeNeedsConversion(uint8_t rct2RideType);
 uint8_t OpenRCT2RideTypeToRCT2RideType(ObjectEntryIndex openrct2Type);
+track_type_t RCT2TrackTypeToOpenRCT2(RCT12TrackType origTrackType, uint8_t rideType);
+RCT12TrackType OpenRCT2TrackTypeToRCT2(track_type_t origTrackType);
 
 /**
  * Iterates an RCT2 string buffer and returns the length of the string in bytes.

@@ -503,7 +503,9 @@ static constexpr const uint64_t window_ride_page_hold_down_widgets[] = {
         (1ULL << WIDX_MINIMUM_LENGTH_INCREASE) |
         (1ULL << WIDX_MINIMUM_LENGTH_DECREASE) |
         (1ULL << WIDX_MAXIMUM_LENGTH_INCREASE) |
-        (1ULL << WIDX_MAXIMUM_LENGTH_DECREASE),
+        (1ULL << WIDX_MAXIMUM_LENGTH_DECREASE) |
+        (1ULL << WIDX_OPERATE_NUMBER_OF_CIRCUITS_INCREASE) |
+        (1ULL << WIDX_OPERATE_NUMBER_OF_CIRCUITS_DECREASE),
     0,
     0,
     0,
@@ -4128,7 +4130,7 @@ static void window_ride_maintenance_paint(rct_window* w, rct_drawpixelinfo* dpi)
 
                 for (auto peep : EntityList<Staff>(EntityListId::Peep))
                 {
-                    if (peep->AssignedStaffType == StaffType::Mechanic)
+                    if (peep->IsMechanic())
                     {
                         stringId = STR_CALLING_MECHANIC;
                         break;
@@ -4209,7 +4211,7 @@ static int32_t window_ride_has_track_colour(Ride* ride, int32_t trackColour)
 static void window_ride_set_track_colour_scheme(rct_window* w, const ScreenCoordsXY& screenPos)
 {
     auto newColourScheme = static_cast<uint8_t>(w->ride_colour);
-    auto info = get_map_coordinates_from_pos(screenPos, VIEWPORT_INTERACTION_MASK_RIDE);
+    auto info = get_map_coordinates_from_pos(screenPos, EnumsToFlags(ViewportInteractionItem::Ride));
 
     if (info.SpriteType != ViewportInteractionItem::Ride)
         return;
@@ -5453,7 +5455,10 @@ static void window_ride_measurements_tooldown(rct_window* w, rct_widgetindex wid
     _lastSceneryY = screenCoords.y;
     _collectTrackDesignScenery = true; // Default to true in case user does not select anything valid
 
-    auto info = get_map_coordinates_from_pos(screenCoords, 0xFCCF);
+    auto flags = EnumsToFlags(
+        ViewportInteractionItem::Scenery, ViewportInteractionItem::Footpath, ViewportInteractionItem::Wall,
+        ViewportInteractionItem::LargeScenery);
+    auto info = get_map_coordinates_from_pos(screenCoords, flags);
     switch (info.SpriteType)
     {
         case ViewportInteractionItem::Scenery:
@@ -5475,7 +5480,10 @@ static void window_ride_measurements_tooldrag(rct_window* w, rct_widgetindex wid
     _lastSceneryX = screenCoords.x;
     _lastSceneryY = screenCoords.y;
 
-    auto info = get_map_coordinates_from_pos(screenCoords, 0xFCCF);
+    auto flags = EnumsToFlags(
+        ViewportInteractionItem::Scenery, ViewportInteractionItem::Footpath, ViewportInteractionItem::Wall,
+        ViewportInteractionItem::LargeScenery);
+    auto info = get_map_coordinates_from_pos(screenCoords, flags);
     switch (info.SpriteType)
     {
         case ViewportInteractionItem::Scenery:
