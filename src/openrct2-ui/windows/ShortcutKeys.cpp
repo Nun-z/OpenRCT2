@@ -134,7 +134,7 @@ public:
             ft.Add<rct_string_id>(STR_STRING);
             ft.Add<const char*>(_shortcutCustomName.c_str());
         }
-        gfx_draw_string_centred_wrapped(&dpi, ft.Data(), stringCoords, 242, STR_SHORTCUT_CHANGE_PROMPT, COLOUR_BLACK);
+        DrawTextWrapped(&dpi, stringCoords, 242, STR_SHORTCUT_CHANGE_PROMPT, ft, { TextAlignment::CENTRE });
     }
 
 private:
@@ -147,6 +147,7 @@ private:
         if (shortcut != nullptr)
         {
             shortcut->Current.clear();
+            shortcutManager.SaveUserBindings();
         }
         Close();
     }
@@ -402,9 +403,9 @@ private:
         auto& shortcutManager = GetShortcutManager();
         for (const auto& shortcut : shortcutManager.Shortcuts)
         {
-            if (IsInCurrentTab(shortcut))
+            if (IsInCurrentTab(shortcut.second))
             {
-                result.push_back(&shortcut);
+                result.push_back(&shortcut.second);
             }
         }
         return result;
@@ -491,7 +492,7 @@ private:
                 }
 
                 const auto& widget = widgets[widgetIndex];
-                gfx_draw_sprite(&dpi, imageId, windowPos + ScreenCoordsXY{ widget.left, widget.top }, 0);
+                gfx_draw_sprite(&dpi, ImageId(imageId), windowPos + ScreenCoordsXY{ widget.left, widget.top });
             }
         }
     }
@@ -525,14 +526,14 @@ private:
             ft.Add<rct_string_id>(STR_STRING);
             ft.Add<const char*>(shortcut.CustomString.c_str());
         }
-        DrawTextEllipsised(&dpi, { 0, y - 1 }, bindingOffset, format, ft, COLOUR_BLACK);
+        DrawTextEllipsised(&dpi, { 0, y - 1 }, bindingOffset, format, ft);
 
         if (!shortcut.Binding.empty())
         {
             ft = Formatter();
             ft.Add<rct_string_id>(STR_STRING);
             ft.Add<const char*>(shortcut.Binding.c_str());
-            DrawTextEllipsised(&dpi, { bindingOffset, y - 1 }, 150, format, ft, COLOUR_BLACK);
+            DrawTextEllipsised(&dpi, { bindingOffset, y - 1 }, 150, format, ft);
         }
     }
 };

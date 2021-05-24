@@ -21,6 +21,8 @@
 #include "object/ObjectManager.h"
 #include "object/ObjectRepository.h"
 #include "ride/RideData.h"
+#include "ride/TrainManager.h"
+#include "ride/Vehicle.h"
 #include "scenario/Scenario.h"
 #include "windows/Intent.h"
 #include "world/Footpath.h"
@@ -60,7 +62,7 @@ static void setup_track_manager_objects()
 
             for (auto rideType : item->RideInfo.RideType)
             {
-                if (rideType != RIDE_TYPE_NULL && ride_type_has_flag(rideType, RIDE_TYPE_FLAG_HAS_TRACK))
+                if (GetRideTypeDescriptor(rideType).HasFlag(RIDE_TYPE_FLAG_HAS_TRACK))
                 {
                     *selectionFlags &= ~OBJECT_SELECTION_FLAG_6;
                     break;
@@ -92,7 +94,7 @@ static void setup_track_designer_objects()
             {
                 if (rideType != RIDE_TYPE_NULL)
                 {
-                    if (RideTypeDescriptors[rideType].Flags & RIDE_TYPE_FLAG_SHOW_IN_TRACK_DESIGNER)
+                    if (GetRideTypeDescriptor(rideType).HasFlag(RIDE_TYPE_FLAG_SHOW_IN_TRACK_DESIGNER))
                     {
                         *selectionFlags &= ~OBJECT_SELECTION_FLAG_6;
                         break;
@@ -201,18 +203,18 @@ void setup_in_use_selection_flags()
     }
 
     // Apply selected object status for hacked vehicles that may not have an associated ride
-    for (auto vehicle : EntityList<Vehicle>(EntityListId::TrainHead))
+    for (auto* vehicle : TrainManager::View())
     {
         ObjectEntryIndex type = vehicle->ride_subtype;
-        if (type != RIDE_ENTRY_INDEX_NULL) // cable lifts use index null. Ignore them
+        if (type != OBJECT_ENTRY_INDEX_NULL) // cable lifts use index null. Ignore them
         {
             Editor::SetSelectedObject(ObjectType::Ride, type, OBJECT_SELECTION_FLAG_SELECTED);
         }
     }
-    for (auto vehicle : EntityList<Vehicle>(EntityListId::Vehicle))
+    for (auto vehicle : EntityList<Vehicle>())
     {
         ObjectEntryIndex type = vehicle->ride_subtype;
-        if (type != RIDE_ENTRY_INDEX_NULL) // cable lifts use index null. Ignore them
+        if (type != OBJECT_ENTRY_INDEX_NULL) // cable lifts use index null. Ignore them
         {
             Editor::SetSelectedObject(ObjectType::Ride, type, OBJECT_SELECTION_FLAG_SELECTED);
         }
@@ -404,15 +406,16 @@ static void ReplaceSelectedWaterPalette(const ObjectRepositoryItem* item)
         objectManager.UnloadObjects(oldEntries);
     }
 
-    const rct_object_entry* newPaletteEntry = &item->ObjectEntry;
+    const rct_object_entry& newPaletteEntry = item->ObjectEntry;
 
-    if (objectManager.GetLoadedObject(newPaletteEntry) != nullptr || objectManager.LoadObject(newPaletteEntry) != nullptr)
+    if (objectManager.GetLoadedObject(ObjectEntryDescriptor(newPaletteEntry)) != nullptr
+        || objectManager.LoadObject(&newPaletteEntry) != nullptr)
     {
         load_palette();
     }
     else
     {
-        log_error("Failed to load selected palette %.8s", newPaletteEntry->name);
+        log_error("Failed to load selected palette %.8s", newPaletteEntry.name);
     }
 }
 

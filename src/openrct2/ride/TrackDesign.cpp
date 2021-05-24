@@ -57,6 +57,7 @@
 #include "Track.h"
 #include "TrackData.h"
 #include "TrackDesignRepository.h"
+#include "Vehicle.h"
 
 #include <algorithm>
 #include <iterator>
@@ -226,7 +227,7 @@ rct_string_id TrackDesign::CreateTrackDesignTrack(const Ride& ride)
         if (trackElement.element->AsTrack()->HasChain())
             trackFlags |= RCT12_TRACK_ELEMENT_TYPE_FLAG_CHAIN_LIFT;
         trackFlags |= trackElement.element->AsTrack()->GetColourScheme() << 4;
-        if (RideTypeDescriptors[ride.type].Flags & RIDE_TYPE_FLAG_HAS_ALTERNATIVE_TRACK_TYPE
+        if (ride.GetRideTypeDescriptor().HasFlag(RIDE_TYPE_FLAG_HAS_ALTERNATIVE_TRACK_TYPE)
             && trackElement.element->AsTrack()->IsInverted())
         {
             trackFlags |= TD6_TRACK_ELEMENT_FLAG_INVERTED;
@@ -1585,7 +1586,7 @@ static bool track_design_place_ride(TrackDesign* td6, const CoordsXYZ& origin, R
                 }
                 else if (_trackDesignPlaceOperation == PTD_OPERATION_PLACE_QUERY)
                 {
-                    flags = 0;
+                    flags = GAME_COMMAND_FLAG_NO_SPEND;
                 }
                 if (_trackDesignPlaceIsReplay)
                 {
@@ -1886,7 +1887,7 @@ static bool track_design_place_preview(TrackDesign* td6, money32* cost, Ride** o
     ObjectEntryIndex entry_index;
     if (!find_object_in_entry_group(&td6->vehicle_object, &entry_type, &entry_index))
     {
-        entry_index = RIDE_ENTRY_INDEX_NULL;
+        entry_index = OBJECT_ENTRY_INDEX_NULL;
     }
 
     ride_id_t rideIndex;
@@ -1912,7 +1913,7 @@ static bool track_design_place_preview(TrackDesign* td6, money32* cost, Ride** o
 
     // Flat rides need their vehicle colours loaded for display
     // in the preview window
-    if (!ride_type_has_flag(td6->type, RIDE_TYPE_FLAG_HAS_TRACK))
+    if (!GetRideTypeDescriptor(td6->type).HasFlag(RIDE_TYPE_FLAG_HAS_TRACK))
     {
         for (int32_t i = 0; i < RCT12_MAX_VEHICLE_COLOURS; i++)
         {
@@ -2017,7 +2018,7 @@ void track_design_draw_preview(TrackDesign* td6, uint8_t* pixels)
 
     // Special case for flat rides - Z-axis info is irrelevant
     // and must be zeroed out lest the preview be off-centre
-    if (!ride_type_has_flag(td6->type, RIDE_TYPE_FLAG_HAS_TRACK))
+    if (!GetRideTypeDescriptor(td6->type).HasFlag(RIDE_TYPE_FLAG_HAS_TRACK))
     {
         centre.z = 0;
         size_z = 0;
@@ -2143,8 +2144,8 @@ static void track_design_preview_clear_map()
         tile_element->SetLastForTile(true);
         tile_element->AsSurface()->SetSlope(TILE_ELEMENT_SLOPE_FLAT);
         tile_element->AsSurface()->SetWaterHeight(0);
-        tile_element->AsSurface()->SetSurfaceStyle(TERRAIN_GRASS);
-        tile_element->AsSurface()->SetEdgeStyle(TERRAIN_EDGE_ROCK);
+        tile_element->AsSurface()->SetSurfaceStyle(0);
+        tile_element->AsSurface()->SetEdgeStyle(0);
         tile_element->AsSurface()->SetGrassLength(GRASS_LENGTH_CLEAR_0);
         tile_element->AsSurface()->SetOwnership(OWNERSHIP_OWNED);
         tile_element->AsSurface()->SetParkFences(0);

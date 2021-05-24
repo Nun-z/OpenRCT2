@@ -14,7 +14,7 @@
 #include "../object/Object.h"
 #include "../rct12/RCT12.h"
 #include "../ride/RideRatings.h"
-#include "../ride/Vehicle.h"
+#include "../ride/VehicleColour.h"
 
 #include <vector>
 
@@ -89,6 +89,8 @@ constexpr const int32_t rct2_object_entry_group_counts[] = {
 // clang-format on
 
 #pragma pack(push, 1)
+
+struct rct_ride_entry;
 
 /**
  * Ride structure.
@@ -451,8 +453,8 @@ assert_struct_size(rct_scores_entry, 0x02B0);
 
 struct RCT2SpriteVehicle : RCT12SpriteBase
 {
-    uint8_t vehicle_sprite_type; // 0x1F
-    uint8_t bank_rotation;       // 0x20
+    uint8_t Pitch;         // 0x1F
+    uint8_t bank_rotation; // 0x20
     uint8_t pad_21[3];
     int32_t remaining_distance; // 0x24
     int32_t velocity;           // 0x28
@@ -761,6 +763,7 @@ public:
     RCT12SpriteCrashedVehicleParticle crashed_vehicle_particle;
     RCT12SpriteCrashSplash crash_splash;
     RCT12SpriteSteamParticle steam_particle;
+    RCT12SpriteParticle misc_particle;
 };
 assert_struct_size(RCT2Sprite, 0x100);
 

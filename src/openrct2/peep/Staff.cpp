@@ -74,8 +74,7 @@ const uint16_t MAX_LITTER_DISTANCE = 3 * COORDS_XY_STEP;
 
 template<> bool SpriteBase::Is<Staff>() const
 {
-    auto peep = As<Peep>();
-    return peep && peep->AssignedPeepType == PeepType::Staff;
+    return Type == EntityType::Staff;
 }
 
 /**
@@ -125,9 +124,9 @@ bool staff_hire_new_member(StaffType staffType, EntertainerCostume entertainerTy
             return;
 
         // Open window for new staff.
-        auto peep = GetEntity<Peep>(res->peepSriteIndex);
+        auto* staff = GetEntity<Staff>(res->peepSriteIndex);
         auto intent = Intent(WC_PEEP);
-        intent.putExtra(INTENT_EXTRA_PEEP, peep);
+        intent.putExtra(INTENT_EXTRA_PEEP, staff);
         context_open_intent(&intent);
     });
 
@@ -149,7 +148,7 @@ void staff_update_greyed_patrol_areas()
             gStaffPatrolAreas[staffPatrolOffset + i] = 0;
         }
 
-        for (auto peep : EntityList<Staff>(EntityListId::Peep))
+        for (auto peep : EntityList<Staff>())
         {
             if (static_cast<uint8_t>(peep->AssignedStaffType) == staff_type)
             {
@@ -349,7 +348,7 @@ uint8_t Staff::GetValidPatrolDirections(const CoordsXY& loc) const
  */
 void Staff::ResetStats()
 {
-    for (auto peep : EntityList<Staff>(EntityListId::Peep))
+    for (auto peep : EntityList<Staff>())
     {
         peep->SetHireDate(gDateMonthsElapsed);
         peep->StaffLawnsMown = 0;
@@ -357,6 +356,7 @@ void Staff::ResetStats()
         peep->StaffGardensWatered = 0;
         peep->StaffRidesInspected = 0;
         peep->StaffLitterSwept = 0;
+        peep->StaffVandalsStopped = 0;
         peep->StaffBinsEmptied = 0;
     }
 }
@@ -423,7 +423,7 @@ Direction Staff::HandymanDirectionToNearestLitter() const
 {
     uint16_t nearestLitterDist = 0xFFFF;
     Litter* nearestLitter = nullptr;
-    for (auto litter : EntityList<Litter>(EntityListId::Litter))
+    for (auto litter : EntityList<Litter>())
     {
         uint16_t distance = abs(litter->x - x) + abs(litter->y - y) + abs(litter->z - z) * 4;
 
@@ -960,7 +960,7 @@ bool Staff::DoMiscPathFinding()
  */
 void Staff::EntertainerUpdateNearbyPeeps() const
 {
-    for (auto guest : EntityList<Guest>(EntityListId::Peep))
+    for (auto guest : EntityList<Guest>())
     {
         if (guest->x == LOCATION_NULL)
             continue;
@@ -996,7 +996,7 @@ void Staff::EntertainerUpdateNearbyPeeps() const
  */
 bool Staff::DoEntertainerPathFinding()
 {
-    if (((scenario_rand() & 0xFFFF) <= 0x4000) && (Action == PeepActionType::None1 || Action == PeepActionType::None2))
+    if (((scenario_rand() & 0xFFFF) <= 0x4000) && IsActionInterruptable())
     {
         Action = (scenario_rand() & 1) ? PeepActionType::Wave2 : PeepActionType::Joy;
         ActionFrame = 0;
@@ -1213,7 +1213,7 @@ void Staff::UpdateWatering()
     }
     else if (SubState == 1)
     {
-        if (Action != PeepActionType::None2)
+        if (!IsActionWalking())
         {
             UpdateAction();
             Invalidate();
@@ -1277,7 +1277,7 @@ void Staff::UpdateEmptyingBin()
     }
     else if (SubState == 1)
     {
-        if (Action == PeepActionType::None2)
+        if (IsActionWalking())
         {
             StateReset();
             return;
@@ -1343,7 +1343,7 @@ void Staff::UpdateSweeping()
     if (Action == PeepActionType::StaffSweep && ActionFrame == 8)
     {
         // Remove sick at this location
-        litter_remove_at({ x, y, z });
+        Litter::RemoveAt({ x, y, z });
         StaffLitterSwept++;
         WindowInvalidateFlags |= PEEP_INVALIDATE_STAFF_STATS;
     }
@@ -1458,7 +1458,7 @@ void Staff::UpdateHeadingToInspect()
 
         if (delta_y < 20)
         {
-            newZ += RideTypeDescriptors[ride->type].Heights.PlatformHeight;
+            newZ += ride->GetRideTypeDescriptor().Heights.PlatformHeight;
         }
 
         MoveTo({ *loc, newZ });
@@ -1496,7 +1496,7 @@ void Staff::UpdateAnswering()
     }
     else if (SubState == 1)
     {
-        if (Action == PeepActionType::None2)
+        if (IsActionWalking())
         {
             SubState = 2;
             peep_window_state_update(this);
@@ -1567,7 +1567,7 @@ void Staff::UpdateAnswering()
 
         if (delta_y < 20)
         {
-            newZ += RideTypeDescriptors[ride->type].Heights.PlatformHeight;
+            newZ += ride->GetRideTypeDescriptor().Heights.PlatformHeight;
         }
 
         MoveTo({ *loc, newZ });
@@ -1791,8 +1791,8 @@ void Staff::Tick128UpdateStaff()
     SpriteType = newSpriteType;
     ActionSpriteImageOffset = 0;
     WalkingFrameNum = 0;
-    if (Action < PeepActionType::None1)
-        Action = PeepActionType::None2;
+    if (Action < PeepActionType::Idle)
+        Action = PeepActionType::Walking;
 
     PeepFlags &= ~PEEP_FLAGS_SLOW_WALK;
     if (gSpriteTypeToSlowWalkMap[EnumValue(newSpriteType)])
@@ -2184,7 +2184,7 @@ bool Staff::UpdateFixingFixVehicle(bool firstRun, const Ride* ride)
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action == PeepActionType::None2)
+    if (IsActionWalking())
     {
         return true;
     }
@@ -2226,7 +2226,7 @@ bool Staff::UpdateFixingFixVehicleMalfunction(bool firstRun, const Ride* ride)
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action == PeepActionType::None2)
+    if (IsActionWalking())
     {
         return true;
     }
@@ -2268,7 +2268,7 @@ bool Staff::UpdateFixingMoveToStationEnd(bool firstRun, const Ride* ride)
 {
     if (!firstRun)
     {
-        if (ride_type_has_flag(ride->type, RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
+        if (ride->GetRideTypeDescriptor().HasFlag(RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
         {
             return true;
         }
@@ -2331,7 +2331,7 @@ bool Staff::UpdateFixingFixStationEnd(bool firstRun)
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action == PeepActionType::None2)
+    if (IsActionWalking())
     {
         return true;
     }
@@ -2354,7 +2354,7 @@ bool Staff::UpdateFixingMoveToStationStart(bool firstRun, const Ride* ride)
 {
     if (!firstRun)
     {
-        if (ride_type_has_flag(ride->type, RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
+        if (ride->GetRideTypeDescriptor().HasFlag(RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
         {
             return true;
         }
@@ -2430,7 +2430,7 @@ bool Staff::UpdateFixingFixStationStart(bool firstRun, const Ride* ride)
 {
     if (!firstRun)
     {
-        if (ride_type_has_flag(ride->type, RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
+        if (ride->GetRideTypeDescriptor().HasFlag(RIDE_TYPE_FLAG_HAS_SINGLE_PIECE_STATION | RIDE_TYPE_FLAG_HAS_NO_TRACK))
         {
             return true;
         }
@@ -2444,7 +2444,7 @@ bool Staff::UpdateFixingFixStationStart(bool firstRun, const Ride* ride)
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action == PeepActionType::None2)
+    if (IsActionWalking())
     {
         return true;
     }
@@ -2472,7 +2472,7 @@ bool Staff::UpdateFixingFixStationBrakes(bool firstRun, Ride* ride)
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action == PeepActionType::None2)
+    if (IsActionWalking())
     {
         return true;
     }
@@ -2564,7 +2564,7 @@ bool Staff::UpdateFixingFinishFixOrInspect(bool firstRun, int32_t steps, Ride* r
         UpdateCurrentActionSpriteType();
     }
 
-    if (Action != PeepActionType::None2)
+    if (!IsActionWalking())
     {
         UpdateAction();
         Invalidate();
@@ -2613,7 +2613,7 @@ bool Staff::UpdateFixingLeaveByEntranceExit(bool firstRun, const Ride* ride)
 
         if (xy_distance >= 16)
         {
-            stationHeight += RideTypeDescriptors[ride->type].Heights.PlatformHeight;
+            stationHeight += ride->GetRideTypeDescriptor().Heights.PlatformHeight;
         }
 
         MoveTo({ *loc, stationHeight });

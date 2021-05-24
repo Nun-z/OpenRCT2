@@ -154,23 +154,22 @@ template<> bool SpriteBase::Is<SpriteBase>() const
 
 template<> bool SpriteBase::Is<Peep>() const
 {
-    return sprite_identifier == SpriteIdentifier::Peep;
+    return Type == EntityType::Guest || Type == EntityType::Staff;
 }
 
 template<> bool SpriteBase::Is<Guest>() const
 {
-    auto peep = As<Peep>();
-    return peep && peep->AssignedPeepType == PeepType::Guest;
+    return Type == EntityType::Guest;
 }
 
 template<> bool SpriteBase::Is<Vehicle>() const
 {
-    return sprite_identifier == SpriteIdentifier::Vehicle;
+    return Type == EntityType::Vehicle;
 }
 
 SpriteBase* get_sprite(size_t sprite_idx)
 {
-    assert(sprite_idx < MAX_SPRITES);
+    assert(sprite_idx < MAX_ENTITIES);
     return reinterpret_cast<SpriteBase*>(&sprite_list[sprite_idx]);
 }
 
@@ -211,11 +210,6 @@ TileElement* map_get_first_element_at(const CoordsXY& elementPos)
     }
     auto tileElementPos = TileCoordsXY{ elementPos };
     return gTileElementTilePointers[tileElementPos.x + tileElementPos.y * 256];
-}
-
-bool ride_type_has_flag(int rideType, uint64_t flag)
-{
-    return (RideTypeDescriptors[rideType].Flags & flag) != 0;
 }
 
 int16_t get_height_marker_offset()
@@ -872,7 +866,7 @@ void ride_ratings_calculate_single_rail_roller_coaster([[maybe_unused]] Ride* ri
 
 const RideTypeDescriptor& Ride::GetRideTypeDescriptor() const
 {
-    return RideTypeDescriptors[type];
+    return ::GetRideTypeDescriptor(type);
 }
 
 uint8_t TileElementBase::GetOwner() const
